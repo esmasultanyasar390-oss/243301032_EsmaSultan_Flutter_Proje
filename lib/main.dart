@@ -1,30 +1,24 @@
 import 'package:flutter/material.dart';
+import 'screens/login_screen.dart'; // Yeni oluşturduğun dosyayı buraya tanıtıyoruz (Import)
 
 void main() {
-  runApp(MyWidget());
+  runApp(const ToptanGuzellikApp());
 }
 
-class MyWidget extends StatefulWidget {
-  const MyWidget({super.key});
+class ToptanGuzellikApp extends StatelessWidget {
+  const ToptanGuzellikApp({super.key});
 
-  @override
-  State<MyWidget> createState() => _LoginScreen();
-}
-
-class _LoginScreen extends State<MyWidget> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text('Kosmetic'),
-          backgroundColor: Color.fromARGB(255, 176, 9, 214),
-          centerTitle: true,
-        ),
-        body: Text('Hosgeldiniz'),
-        centerTitle: true,
+      title: 'Toptan Güzellik',
+      debugShowCheckedModeBanner: false, // Sağ üstteki debug yazısını kaldırır
+      theme: ThemeData(
+        primarySwatch:
+            Colors.purple, // Buton renklerine uygun olması için mor tema
       ),
+      // Uygulama açıldığında hangi ekranın geleceğini burada seçiyoruz:
+      home: const LoginScreen(),
     );
   }
 }
