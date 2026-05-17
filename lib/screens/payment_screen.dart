@@ -20,7 +20,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _load() {
-    final uid = AuthService.currentUser?.uid ?? 'demo_uid';
+    final uid = AuthService.currentUser?.uid ?? '';
     setState(() {
       _paymentsFuture = FirestoreService.getUserPayments(uid);
     });
@@ -91,7 +91,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 }
                 Navigator.pop(ctx2);
                 await FirestoreService.makePayment(
-                  userId: AuthService.currentUser?.uid ?? 'demo_uid',
+                  userId: AuthService.currentUser?.uid ?? '',
                   amount: amount,
                   paymentType: paymentType,
                 );

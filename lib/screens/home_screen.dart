@@ -21,19 +21,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    _DashboardTab(),
-    CatalogScreen(),
-    OrdersScreen(),
-    PaymentScreen(),
-    ProfileScreen(),
-  ];
+  bool get _isBayi => AuthService.currentUser?.role == 'bayi';
+
+  List<Widget> get _screens => [
+        const _DashboardTab(),
+        const CatalogScreen(),
+        const OrdersScreen(),
+        _isBayi ? const PaymentScreen() : const _CariLockedScreen(),
+        const ProfileScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final screens = _screens;
     return Consumer<CartProvider>(
       builder: (context, cart, _) => Scaffold(
-        body: IndexedStack(index: _currentIndex, children: _screens),
+        body: IndexedStack(index: _currentIndex, children: screens),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (i) => setState(() => _currentIndex = i),
@@ -64,9 +67,13 @@ class _HomeScreenState extends State<HomeScreen> {
               activeIcon: Icon(Icons.receipt_long),
               label: 'Siparişler',
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.account_balance_wallet_outlined),
-              activeIcon: Icon(Icons.account_balance_wallet),
+            BottomNavigationBarItem(
+              icon: Icon(_isBayi
+                  ? Icons.account_balance_wallet_outlined
+                  : Icons.lock_outline),
+              activeIcon: Icon(_isBayi
+                  ? Icons.account_balance_wallet
+                  : Icons.lock_outline),
               label: 'Cari',
             ),
             const BottomNavigationBarItem(
@@ -75,6 +82,60 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Profil',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CariLockedScreen extends StatelessWidget {
+  const _CariLockedScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        title: const Text('Cari Hesap',
+            style: TextStyle(
+                color: AppColors.primary, fontWeight: FontWeight.bold)),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline,
+                    size: 56, color: AppColors.primary),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Bayi Hesabı Gerekli',
+                style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textDark),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Cari hesap yönetimi, toptan fiyatlandırma ve kredi limiti '
+                'özellikleri yalnızca bayi hesaplarına özeldir.\n\n'
+                'Bayi hesabı açmak için bizimle iletişime geçin.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textGrey, height: 1.5),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -94,7 +155,7 @@ class _DashboardTabState extends State<_DashboardTab> {
   @override
   void initState() {
     super.initState();
-    final uid = AuthService.currentUser?.uid ?? 'demo_uid';
+    final uid = AuthService.currentUser?.uid ?? '';
     _ordersFuture = FirestoreService.getUserOrders(uid);
   }
 

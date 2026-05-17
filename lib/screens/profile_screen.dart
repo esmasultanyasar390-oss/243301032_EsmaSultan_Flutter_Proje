@@ -21,7 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _loadLogs() {
-    final uid = AuthService.currentUser?.uid ?? 'demo_uid';
+    final uid = AuthService.currentUser?.uid ?? '';
     setState(() {
       _logsFuture = FirestoreService.getUserLogs(uid);
     });
@@ -98,8 +98,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     radius: 40,
                     backgroundColor: AppColors.primary,
                     child: Text(
-                      (user?.companyName.isNotEmpty == true)
-                          ? user!.companyName[0].toUpperCase()
+                      (user?.name.isNotEmpty == true)
+                          ? user!.name[0].toUpperCase()
                           : 'K',
                       style: const TextStyle(
                           fontSize: 32,
@@ -108,9 +108,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Text(user?.companyName ?? 'Kozmetik Ltd.',
-                      style: const TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text(
+                    user?.name ?? '',
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                   Container(
                     margin: const EdgeInsets.only(top: 4),
                     padding: const EdgeInsets.symmetric(
@@ -120,7 +122,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      user?.role == 'yonetici' ? 'Yönetici' : 'Bayi',
+                      user?.role == 'admin'
+                          ? 'Yönetici'
+                          : user?.role == 'bayi'
+                              ? 'Bayi'
+                              : 'Bireysel Kullanıcı',
                       style: const TextStyle(
                           color: AppColors.primary, fontSize: 12),
                     ),
@@ -139,14 +145,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   _infoRow(Icons.email, 'E-posta', user?.email ?? ''),
-                  const Divider(),
-                  _infoRow(Icons.numbers, 'Vergi No', user?.taxNumber ?? ''),
-                  const Divider(),
-                  _infoRow(Icons.credit_card, 'Kredi Limiti',
-                      '${user?.creditLimit.toStringAsFixed(2) ?? '50000.00'} ₺'),
-                  const Divider(),
-                  _infoRow(Icons.money_off, 'Mevcut Borç',
-                      '${user?.currentDebt.toStringAsFixed(2) ?? '0.00'} ₺'),
+                  if (user?.role == 'bayi') ...[
+                    const Divider(),
+                    _infoRow(
+                        Icons.numbers, 'Vergi No', user?.taxNumber ?? ''),
+                    const Divider(),
+                    _infoRow(
+                        Icons.credit_card,
+                        'Kredi Limiti',
+                        '${user?.creditLimit.toStringAsFixed(2) ?? '50000.00'} ₺'),
+                    const Divider(),
+                    _infoRow(
+                        Icons.money_off,
+                        'Mevcut Borç',
+                        '${user?.currentDebt.toStringAsFixed(2) ?? '0.00'} ₺'),
+                  ],
                 ],
               ),
             ),

@@ -33,7 +33,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 
   void _load() {
-    final uid = AuthService.currentUser?.uid ?? 'demo_uid';
+    final uid = AuthService.currentUser?.uid ?? '';
     setState(() {
       _future = FirestoreService.getUserOrders(uid);
     });
