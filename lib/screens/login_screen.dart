@@ -85,8 +85,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     AppStrings.tagline,
                     style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.primary.withValues(alpha: 0.7)),
+                      fontSize: 14,
+                      color: AppColors.primary.withValues(alpha: 0.7),
+                    ),
                   ),
                 ],
               ),
@@ -123,13 +124,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: Text(
                           'Hesabınıza erişmek için bilgilerinizi girin',
                           style: TextStyle(
-                              fontSize: 13, color: AppColors.textGrey),
+                            fontSize: 13,
+                            color: AppColors.textGrey,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 32),
-                      const Text('E-posta',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14)),
+                      const Text(
+                        'E-posta',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _emailCtrl,
@@ -137,9 +144,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: _fieldDeco(Icons.email_outlined),
                       ),
                       const SizedBox(height: 20),
-                      const Text('Şifre',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 14)),
+                      const Text(
+                        'Şifre',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextField(
                         controller: _passCtrl,
@@ -148,10 +159,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         decoration: _fieldDeco(Icons.lock_outline).copyWith(
                           suffixIcon: IconButton(
                             icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                                color: Colors.grey),
+                              _obscure
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: Colors.grey,
+                            ),
                             onPressed: () =>
                                 setState(() => _obscure = !_obscure),
                           ),
@@ -165,7 +177,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(26)),
+                              borderRadius: BorderRadius.circular(26),
+                            ),
                           ),
                           onPressed: _loading ? null : _login,
                           child: _loading
@@ -173,10 +186,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 22,
                                   height: 22,
                                   child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
-                              : const Text('Giriş Yap',
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Giriş Yap',
                                   style: TextStyle(
-                                      fontSize: 16, color: Colors.white)),
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 14),
@@ -187,25 +207,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: AppColors.primary),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(26)),
+                              borderRadius: BorderRadius.circular(26),
+                            ),
                           ),
                           onPressed: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const RegisterScreen())),
-                          child: const Text('Yeni Hesap Oluştur',
-                              style: TextStyle(
-                                  fontSize: 16, color: AppColors.primary)),
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterScreen(),
+                            ),
+                          ),
+                          child: const Text(
+                            'Yeni Hesap Oluştur',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppColors.primary,
+                            ),
+                          ),
                         ),
                       ),
-                      // Demo mod kartı — Firebase bağlı olduğunda gizlenir
-                      if (Firebase.apps.isEmpty) ...[
-                        const SizedBox(height: 20),
-                        _DemoCard(
-                          emailCtrl: _emailCtrl,
-                          passCtrl: _passCtrl,
-                        ),
-                      ],
+                      const SizedBox(height: 20),
+                      _DemoCard(emailCtrl: _emailCtrl, passCtrl: _passCtrl),
                     ],
                   ),
                 ),
@@ -218,18 +239,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   InputDecoration _fieldDeco(IconData icon) => InputDecoration(
-        prefixIcon: Icon(icon, color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(vertical: 15),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: AppColors.primary),
-        ),
-      );
+    prefixIcon: Icon(icon, color: Colors.grey),
+    contentPadding: const EdgeInsets.symmetric(vertical: 15),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: BorderSide(color: Colors.grey.shade300),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(10),
+      borderSide: const BorderSide(color: AppColors.primary),
+    ),
+  );
 }
 
 class _DemoCard extends StatefulWidget {
@@ -264,20 +285,23 @@ class _DemoCardState extends State<_DemoCard> {
             borderRadius: BorderRadius.circular(12),
             onTap: () => setState(() => _expanded = !_expanded),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline,
-                      size: 18, color: Color(0xFFF9A825)),
+                  const Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Color(0xFFF9A825),
+                  ),
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
                       'Demo Hesaplar (Firebase bağlı değil)',
                       style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFFF57F17)),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFFF57F17),
+                      ),
                     ),
                   ),
                   Icon(
@@ -290,8 +314,12 @@ class _DemoCardState extends State<_DemoCard> {
           ),
           if (_expanded) ...[
             const Divider(height: 1, color: Color(0xFFFFE082)),
-            _row(Icons.admin_panel_settings, 'Yönetici',
-                'admin@kosmetic.com', 'admin123'),
+            _row(
+              Icons.admin_panel_settings,
+              'Yönetici',
+              'admin@kosmetic.com',
+              'admin123',
+            ),
             _row(Icons.business, 'Bayi', 'demo@kosmetic.com', '123456'),
             _row(Icons.person, 'Bireysel', 'kullanici@kosmetic.com', '123456'),
             const SizedBox(height: 4),
@@ -312,14 +340,19 @@ class _DemoCardState extends State<_DemoCard> {
             const SizedBox(width: 8),
             SizedBox(
               width: 72,
-              child: Text(label,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             Expanded(
-              child: Text('$email  /  $pass',
-                  style: const TextStyle(
-                      fontSize: 11, color: AppColors.textGrey)),
+              child: Text(
+                '$email  /  $pass',
+                style: const TextStyle(fontSize: 11, color: AppColors.textGrey),
+              ),
             ),
           ],
         ),

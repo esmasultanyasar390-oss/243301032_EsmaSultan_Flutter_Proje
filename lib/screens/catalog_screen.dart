@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants.dart';
 import '../models/product_model.dart';
+import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/cart_provider.dart';
 import '../widgets/product_card.dart';
@@ -29,22 +30,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   String _selectedCategory = '';
   String _selectedBrand = '';
-  late Future<List<ProductModel>> _productsFuture;
 
-  @override
-  void initState() {
-    super.initState();
-    _load();
+  Future<List<ProductModel>> _fetchProducts() {
+    final user = AuthService.currentUser;
+    if (user == null) return Future.value([]);
+    return FirestoreService.getProductsForViewer(
+      userId: user.uid,
+      role: user.role,
+      userCustomPrices: user.customPrices,
+      category: _selectedCategory.isEmpty ? null : _selectedCategory,
+      brand: _selectedBrand.isEmpty ? null : _selectedBrand,
+    );
   }
 
-  void _load() {
-    setState(() {
-      _productsFuture = FirestoreService.getProducts(
-        category: _selectedCategory,
-        brand: _selectedBrand,
-      );
-    });
-  }
+  void _onFilterChanged() => setState(() {});
 
   void _showCart(BuildContext context) {
     showModalBottomSheet(
@@ -58,22 +57,23 @@ class _CatalogScreenState extends State<CatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isBayi = AuthService.isBayi;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        title: const Text('Ürün Kataloğu',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          isBayi ? 'Toptan Katalog' : 'Ürünler',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: [
-          Consumer<CartProvider>(
-            builder: (context, cart, _) => IconButton(
-              icon: Badge(
-                isLabelVisible: cart.totalQuantity > 0,
-                label: Text('${cart.totalQuantity}'),
-                child: const Icon(Icons.shopping_cart, color: Colors.white),
-              ),
-              onPressed: () => _showCart(context),
-            ),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
+            tooltip: 'Sepet önizleme',
+            onPressed: () => _showCart(context),
           ),
         ],
       ),
@@ -85,16 +85,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
             child: Row(
               children: [
                 Expanded(child: _dropdown('Kategori', _categories, _selectedCategory,
-                    (v) => setState(() { _selectedCategory = v ?? ''; _load(); }))),
+                    (v) => setState(() { _selectedCategory = v ?? ''; _onFilterChanged(); }))),
                 const SizedBox(width: 10),
                 Expanded(child: _dropdown('Marka', _brands, _selectedBrand,
-                    (v) => setState(() { _selectedBrand = v ?? ''; _load(); }))),
+                    (v) => setState(() { _selectedBrand = v ?? ''; _onFilterChanged(); }))),
               ],
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<ProductModel>>(
-              future: _productsFuture,
+            child: Consumer<CartProvider>(
+              builder: (context, cart, _) => FutureBuilder<List<ProductModel>>(
+              key: ValueKey(
+                'products_${cart.stockRevision}_$_selectedCategory$_selectedBrand',
+              ),
+              future: _fetchProducts(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -118,7 +122,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       ProductCard(product: products[i]),
                 );
               },
-            ),
+            )),
           ),
         ],
       ),
@@ -201,7 +205,9 @@ class _CartSheet extends StatelessWidget {
                                         color: AppColors.primary)),
                                 const SizedBox(width: 4),
                                 GestureDetector(
-                                  onTap: () => cart.removeItem(ci.product.id),
+                                  onTap: () async {
+                                    await cart.removeItem(ci.product.id);
+                                  },
                                   child: const Icon(Icons.close,
                                       size: 16, color: AppColors.danger),
                                 ),
@@ -212,16 +218,21 @@ class _CartSheet extends StatelessWidget {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove, size: 16),
-                                  onPressed: () =>
-                                      cart.decreaseItem(ci.product.id),
+                                  onPressed: () async {
+                                    await cart.decreaseItem(ci.product.id);
+                                  },
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                 ),
                                 Text('${ci.quantity}'),
                                 IconButton(
                                   icon: const Icon(Icons.add, size: 16),
-                                  onPressed: () =>
-                                      cart.addItem(ci.product),
+                                  onPressed: () async {
+                                    final fresh = FirestoreService
+                                            .getProductById(ci.product.id) ??
+                                        ci.product;
+                                    await cart.addItem(fresh, quantity: 1);
+                                  },
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                 ),
@@ -247,30 +258,18 @@ class _CartSheet extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25)),
-                  ),
-                  onPressed: () async {
-                    final ok = await cart.placeOrder();
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content: Text(ok
-                            ? 'Sipariş başarıyla verildi!'
-                            : 'Sipariş verilemedi.'),
-                        backgroundColor:
-                            ok ? AppColors.success : AppColors.danger,
-                      ));
-                    }
-                  },
-                  child: const Text('Sipariş Ver',
-                      style: TextStyle(color: Colors.white, fontSize: 16)),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.info.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'Siparişi tamamlamak için Siparişler sekmesine gidin, '
+                  'ödeme onayından sonra sipariş oluşturulur.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 13, color: AppColors.textDark),
                 ),
               ),
             ],

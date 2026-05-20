@@ -7,6 +7,7 @@ import 'screens/home_screen.dart';
 import 'screens/admin_home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/cart_provider.dart';
+import 'services/firestore_service.dart';
 import 'constants.dart';
 import 'firebase_options.dart';
 
@@ -17,9 +18,13 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('✅ Firebase başarıyla başlatıldı');
+    try {
+      await FirestoreService.seedInitialData();
+    } catch (e) {
+      print('⚠️ Firestore seed atlandı (yerel örnek veri kullanılacak): $e');
+    }
   } catch (e) {
     print('❌ Firebase başlatma hatası: $e');
-    // Hata detayını göster, sessizce başarısız olma
   }
   runApp(const KosmeticApp());
 }
@@ -30,7 +35,11 @@ class KosmeticApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => CartProvider(),
+      create: (_) {
+        final cart = CartProvider();
+        CartProvider.attach(cart);
+        return cart;
+      },
       child: MaterialApp(
         title: AppStrings.appName,
         debugShowCheckedModeBanner: false,
@@ -67,12 +76,14 @@ class _AuthGateState extends State<_AuthGate> {
     if (Firebase.apps.isEmpty) {
       final existing = AuthService.currentUser;
       if (existing != null) {
+        CartProvider.bindToCurrentUser();
         _navigate(
           existing.role == 'admin'
               ? const AdminHomeScreen()
               : const HomeScreen(),
         );
       } else {
+        CartProvider.clearOnLogout();
         _navigate(const LoginScreen());
       }
       return;
@@ -86,11 +97,16 @@ class _AuthGateState extends State<_AuthGate> {
     }
 
     final user = await AuthService.loadCurrentUser(firebaseUser.uid);
+    if (user != null && user.role == 'bayi') {
+      await FirestoreService.ensureSampleOrdersForUser(user.uid);
+    }
     if (!mounted) return;
 
     if (user == null) {
+      CartProvider.clearOnLogout();
       _navigate(const LoginScreen());
     } else {
+      CartProvider.bindToCurrentUser();
       _navigate(
         user.role == 'admin' ? const AdminHomeScreen() : const HomeScreen(),
       );

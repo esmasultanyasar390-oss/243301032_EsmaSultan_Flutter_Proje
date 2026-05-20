@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/product_model.dart';
-import '../services/cart_provider.dart';
+import '../services/auth_service.dart';
+import 'add_to_cart_dialog.dart';
 import '../constants.dart';
 
 class ProductCard extends StatelessWidget {
@@ -11,6 +11,11 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBayi = AuthService.isBayi;
+    final isKullanici = AuthService.isKullanici;
+    final priceLabel =
+        isBayi ? 'Toptan Fiyat' : (isKullanici ? 'Size Özel Fiyat' : 'Fiyat');
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -56,12 +61,25 @@ class ProductCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '${product.wholesalePrice.toStringAsFixed(2)} ₺',
-                        style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            priceLabel,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: AppColors.textGrey,
+                            ),
+                          ),
+                          Text(
+                            '${product.wholesalePrice.toStringAsFixed(2)} ₺',
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
@@ -93,14 +111,7 @@ class ProductCard extends StatelessWidget {
                         padding: EdgeInsets.zero,
                       ),
                       onPressed: product.stock > 0
-                          ? () {
-                              context.read<CartProvider>().addItem(product);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('${product.name} sepete eklendi'),
-                                duration: const Duration(seconds: 1),
-                                backgroundColor: AppColors.success,
-                              ));
-                            }
+                          ? () => showAddToCartDialog(context, product)
                           : null,
                       child: const Text('Sepete Ekle',
                           style: TextStyle(fontSize: 11, color: Colors.white)),

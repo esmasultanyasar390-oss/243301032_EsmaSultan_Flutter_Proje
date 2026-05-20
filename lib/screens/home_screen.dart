@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../constants.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
@@ -11,6 +10,7 @@ import 'orders_screen.dart';
 import 'payment_screen.dart';
 import 'profile_screen.dart';
 
+/// Bayi ve bireysel kullanıcı için rol bazlı ana kabuk.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -21,142 +21,135 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  bool get _isBayi => AuthService.currentUser?.role == 'bayi';
+  bool get _isBayi => AuthService.isBayi;
 
-  List<Widget> get _screens => [
-        const _DashboardTab(),
-        const CatalogScreen(),
-        const OrdersScreen(),
-        _isBayi ? const PaymentScreen() : const _CariLockedScreen(),
-        const ProfileScreen(),
+  List<Widget> get _screens => _isBayi
+      ? const [
+          _BayiDashboardTab(),
+          CatalogScreen(),
+          OrdersScreen(),
+          PaymentScreen(),
+          ProfileScreen(),
+        ]
+      : const [
+          _KullaniciDashboardTab(),
+          CatalogScreen(),
+          OrdersScreen(),
+          ProfileScreen(),
+        ];
+
+  List<BottomNavigationBarItem> _navItems(int cartQty) {
+    Widget badgeIcon(IconData outlined, IconData filled) {
+      return Badge(
+        isLabelVisible: cartQty > 0,
+        label: Text('$cartQty'),
+        child: Icon(outlined),
+      );
+    }
+
+    Widget badgeIconActive(IconData outlined, IconData filled) {
+      return Badge(
+        isLabelVisible: cartQty > 0,
+        label: Text('$cartQty'),
+        child: Icon(filled),
+      );
+    }
+
+    if (_isBayi) {
+      return [
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.home_outlined),
+          activeIcon: Icon(Icons.home),
+          label: 'Ana Sayfa',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.shopping_bag_outlined),
+          activeIcon: Icon(Icons.shopping_bag),
+          label: 'Ürünler',
+        ),
+        BottomNavigationBarItem(
+          icon: badgeIcon(Icons.receipt_long_outlined, Icons.receipt_long),
+          activeIcon: badgeIconActive(Icons.receipt_long_outlined, Icons.receipt_long),
+          label: 'Siparişler',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.account_balance_wallet_outlined),
+          activeIcon: Icon(Icons.account_balance_wallet),
+          label: 'Cari',
+        ),
+        const BottomNavigationBarItem(
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
+          label: 'Profil',
+        ),
       ];
+    }
+
+    return [
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined),
+        activeIcon: Icon(Icons.home),
+        label: 'Ana Sayfa',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.shopping_bag_outlined),
+        activeIcon: Icon(Icons.shopping_bag),
+        label: 'Ürünler',
+      ),
+      BottomNavigationBarItem(
+        icon: badgeIcon(Icons.receipt_long_outlined, Icons.receipt_long),
+        activeIcon: badgeIconActive(Icons.receipt_long_outlined, Icons.receipt_long),
+        label: 'Siparişler',
+      ),
+      const BottomNavigationBarItem(
+        icon: Icon(Icons.person_outline),
+        activeIcon: Icon(Icons.person),
+        label: 'Profil',
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     final screens = _screens;
     return Consumer<CartProvider>(
-      builder: (context, cart, _) => Scaffold(
-        body: IndexedStack(index: _currentIndex, children: screens),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (i) => setState(() => _currentIndex = i),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.grey,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined),
-              activeIcon: Icon(Icons.home),
-              label: 'Ana Sayfa',
-            ),
-            BottomNavigationBarItem(
-              icon: Badge(
-                isLabelVisible: cart.totalQuantity > 0,
-                label: Text('${cart.totalQuantity}'),
-                child: const Icon(Icons.shopping_bag_outlined),
-              ),
-              activeIcon: Badge(
-                isLabelVisible: cart.totalQuantity > 0,
-                label: Text('${cart.totalQuantity}'),
-                child: const Icon(Icons.shopping_bag),
-              ),
-              label: 'Ürünler',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long_outlined),
-              activeIcon: Icon(Icons.receipt_long),
-              label: 'Siparişler',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(_isBayi
-                  ? Icons.account_balance_wallet_outlined
-                  : Icons.lock_outline),
-              activeIcon: Icon(_isBayi
-                  ? Icons.account_balance_wallet
-                  : Icons.lock_outline),
-              label: 'Cari',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person),
-              label: 'Profil',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
+      builder: (context, cart, _) {
+        final maxIndex = screens.length - 1;
+        final index = _currentIndex.clamp(0, maxIndex);
 
-class _CariLockedScreen extends StatelessWidget {
-  const _CariLockedScreen();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: const Text('Cari Hesap',
-            style: TextStyle(
-                color: AppColors.primary, fontWeight: FontWeight.bold)),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.lock_outline,
-                    size: 56, color: AppColors.primary),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Bayi Hesabı Gerekli',
-                style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Cari hesap yönetimi, toptan fiyatlandırma ve kredi limiti '
-                'özellikleri yalnızca bayi hesaplarına özeldir.\n\n'
-                'Bayi hesabı açmak için bizimle iletişime geçin.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.textGrey, height: 1.5),
-              ),
-            ],
+        return Scaffold(
+          body: IndexedStack(index: index, children: screens),
+          bottomNavigationBar: BottomNavigationBar(
+            currentIndex: index,
+            onTap: (i) => setState(() => _currentIndex = i),
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: Colors.grey,
+            items: _navItems(cart.totalQuantity),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
-class _DashboardTab extends StatefulWidget {
-  const _DashboardTab();
+// ── Bayi ana sayfa ─────────────────────────────────────────────────────
+
+class _BayiDashboardTab extends StatefulWidget {
+  const _BayiDashboardTab();
 
   @override
-  State<_DashboardTab> createState() => _DashboardTabState();
+  State<_BayiDashboardTab> createState() => _BayiDashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab> {
+class _BayiDashboardTabState extends State<_BayiDashboardTab> {
   late Future<List<OrderModel>> _ordersFuture;
 
   @override
   void initState() {
     super.initState();
-    final uid = AuthService.currentUser?.uid ?? '';
-    _ordersFuture = FirestoreService.getUserOrders(uid);
+    _ordersFuture =
+        FirestoreService.getUserOrders(AuthService.currentUser?.uid ?? '');
   }
 
   @override
@@ -169,15 +162,14 @@ class _DashboardTabState extends State<_DashboardTab> {
           future: _ordersFuture,
           builder: (context, snapshot) {
             final orders = snapshot.data ?? [];
-            final pending = orders.where((o) => o.status == 'beklemede').length;
-            final preparing = orders
-                .where((o) => o.status == 'hazirlaniyor')
-                .length;
-            final done = orders.where((o) => o.status == 'tamamlandi').length;
-            final totalSpending = orders.fold<double>(
-              0,
-              (s, o) => s + o.totalAmount,
-            );
+            final pending =
+                orders.where((o) => o.status == 'beklemede').length;
+            final preparing =
+                orders.where((o) => o.status == 'hazirlaniyor').length;
+            final done =
+                orders.where((o) => o.status == 'tamamlandi').length;
+            final totalSpending =
+                orders.fold<double>(0, (s, o) => s + o.totalAmount);
             final pendingAmount = orders
                 .where((o) => o.status == 'beklemede')
                 .fold<double>(0, (s, o) => s + o.totalAmount);
@@ -187,34 +179,35 @@ class _DashboardTabState extends State<_DashboardTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _header(
-                    user?.companyName ?? 'Kozmetik Ltd.',
-                    user?.email ?? '',
+                  _DashboardHeader(
+                    title: user?.companyName ?? 'Bayi',
+                    subtitle: user?.email ?? '',
+                    badge: 'Bayi Hesabı',
+                    badgeColor: AppColors.info,
+                  ),
+                  const SizedBox(height: 8),
+                  _CreditSummaryRow(
+                    accountBalance: user?.accountBalance ?? 0,
+                    creditLimit: user?.creditLimit ?? 50000,
+                    currentDebt: user?.currentDebt ?? 0,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Siparişlerim',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
-                  ),
+                  const _SectionTitle('Sipariş Özeti'),
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      _statusCard('Beklemede', pending, AppColors.info),
+                      _StatusCard('Beklemede', pending, AppColors.info),
                       const SizedBox(width: 8),
-                      _statusCard('Hazırlanıyor', preparing, AppColors.warning),
+                      _StatusCard('Hazırlanıyor', preparing, AppColors.warning),
                       const SizedBox(width: 8),
-                      _statusCard('Tamamlandı', done, AppColors.success),
+                      _StatusCard('Tamamlandı', done, AppColors.success),
                     ],
                   ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
-                        child: _infoCard(
+                        child: _InfoCard(
                           'Toplam Harcama',
                           '${totalSpending.toStringAsFixed(2)} ₺',
                           Icons.payments_outlined,
@@ -223,7 +216,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _infoCard(
+                        child: _InfoCard(
                           'Bekleyen Ödeme',
                           '${pendingAmount.toStringAsFixed(2)} ₺',
                           Icons.pending_actions,
@@ -232,20 +225,11 @@ class _DashboardTabState extends State<_DashboardTab> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  _chartSection(),
-                  const SizedBox(height: 20),
                   if (orders.isNotEmpty) ...[
-                    const Text(
-                      'Son Siparişler',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
+                    const SizedBox(height: 20),
+                    const _SectionTitle('Son Siparişler'),
                     const SizedBox(height: 10),
-                    ...orders.take(3).map((o) => _recentOrderTile(o)),
+                    ...orders.take(3).map(_RecentOrderTile.new),
                   ],
                 ],
               ),
@@ -255,8 +239,141 @@ class _DashboardTabState extends State<_DashboardTab> {
       ),
     );
   }
+}
 
-  Widget _header(String company, String email) {
+// ── Bireysel kullanıcı ana sayfa ───────────────────────────────────────
+
+class _KullaniciDashboardTab extends StatefulWidget {
+  const _KullaniciDashboardTab();
+
+  @override
+  State<_KullaniciDashboardTab> createState() => _KullaniciDashboardTabState();
+}
+
+class _KullaniciDashboardTabState extends State<_KullaniciDashboardTab> {
+  late Future<List<OrderModel>> _ordersFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _ordersFuture =
+        FirestoreService.getUserOrders(AuthService.currentUser?.uid ?? '');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: FutureBuilder<List<OrderModel>>(
+          future: _ordersFuture,
+          builder: (context, snapshot) {
+            final orders = snapshot.data ?? [];
+            final pending =
+                orders.where((o) => o.status == 'beklemede').length;
+            final preparing =
+                orders.where((o) => o.status == 'hazirlaniyor').length;
+            final done =
+                orders.where((o) => o.status == 'tamamlandi').length;
+            final totalSpending =
+                orders.fold<double>(0, (s, o) => s + o.totalAmount);
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DashboardHeader(
+                    title: user?.displayName.isNotEmpty == true
+                        ? user!.displayName
+                        : user?.email ?? 'Kullanıcı',
+                    subtitle: user?.email ?? '',
+                    badge: 'Bireysel Müşteri',
+                    badgeColor: AppColors.success,
+                  ),
+                  const SizedBox(height: 20),
+                  const _SectionTitle('Siparişlerim'),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      _StatusCard('Beklemede', pending, AppColors.info),
+                      const SizedBox(width: 8),
+                      _StatusCard('Hazırlanıyor', preparing, AppColors.warning),
+                      const SizedBox(width: 8),
+                      _StatusCard('Tamamlandı', done, AppColors.success),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _InfoCard(
+                    'Toplam Alışveriş',
+                    '${totalSpending.toStringAsFixed(2)} ₺',
+                    Icons.shopping_bag_outlined,
+                    AppColors.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.info.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline,
+                            color: AppColors.info, size: 22),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Perakende fiyatlarla sipariş verebilirsiniz. '
+                            'Cari hesap ve toptan fiyat yalnızca bayiler içindir.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textDark,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (orders.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const _SectionTitle('Son Siparişler'),
+                    const SizedBox(height: 10),
+                    ...orders.take(3).map(_RecentOrderTile.new),
+                  ],
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ── Paylaşılan bileşenler ──────────────────────────────────────────────
+
+class _DashboardHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String badge;
+  final Color badgeColor;
+
+  const _DashboardHeader({
+    required this.title,
+    required this.subtitle,
+    required this.badge,
+    required this.badgeColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -275,7 +392,7 @@ class _DashboardTabState extends State<_DashboardTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  company,
+                  title,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -283,8 +400,25 @@ class _DashboardTabState extends State<_DashboardTab> {
                   ),
                 ),
                 Text(
-                  email,
+                  subtitle,
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor.withValues(alpha: 0.25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    badge,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -293,8 +427,112 @@ class _DashboardTabState extends State<_DashboardTab> {
       ),
     );
   }
+}
 
-  Widget _statusCard(String label, int count, Color color) {
+class _CreditSummaryRow extends StatelessWidget {
+  final double accountBalance;
+  final double creditLimit;
+  final double currentDebt;
+
+  const _CreditSummaryRow({
+    required this.accountBalance,
+    required this.creditLimit,
+    required this.currentDebt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _miniStat(
+            'Bakiye',
+            '${accountBalance.toStringAsFixed(0)} ₺',
+            AppColors.success,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _miniStat(
+            'Borç',
+            '${currentDebt.toStringAsFixed(0)} ₺',
+            currentDebt > 0 ? AppColors.danger : AppColors.success,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _miniStat(
+            'Limit',
+            '${creditLimit.toStringAsFixed(0)} ₺',
+            AppColors.info,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _miniStat(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 9, color: AppColors.textGrey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String text;
+  const _SectionTitle(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: AppColors.textDark,
+      ),
+    );
+  }
+}
+
+class _StatusCard extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _StatusCard(this.label, this.count, this.color);
+
+  @override
+  Widget build(BuildContext context) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -324,8 +562,18 @@ class _DashboardTabState extends State<_DashboardTab> {
       ),
     );
   }
+}
 
-  Widget _infoCard(String title, String value, IconData icon, Color color) {
+class _InfoCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  const _InfoCard(this.title, this.value, this.icon, this.color);
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -369,99 +617,20 @@ class _DashboardTabState extends State<_DashboardTab> {
       ),
     );
   }
+}
 
-  Widget _chartSection() {
-    const monthlyData = [1500.0, 2200.0, 1800.0, 3100.0, 2700.0, 2400.0];
-    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz'];
+class _RecentOrderTile extends StatelessWidget {
+  final OrderModel order;
+  const _RecentOrderTile(this.order);
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Aylık Harcama (₺)',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: AppColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 160,
-            child: LineChart(
-              LineChartData(
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: List.generate(
-                      monthlyData.length,
-                      (i) => FlSpot(i.toDouble(), monthlyData[i]),
-                    ),
-                    isCurved: true,
-                    color: AppColors.primary,
-                    barWidth: 3,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                    ),
-                  ),
-                ],
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final i = value.toInt();
-                        if (i >= 0 && i < months.length) {
-                          return Text(
-                            months[i],
-                            style: const TextStyle(fontSize: 10),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                  leftTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                ),
-                borderData: FlBorderData(show: false),
-                gridData: const FlGridData(show: false),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _recentOrderTile(OrderModel order) {
-    final statusColors = {
+  @override
+  Widget build(BuildContext context) {
+    const statusColors = {
       'beklemede': AppColors.info,
       'hazirlaniyor': AppColors.warning,
       'tamamlandi': AppColors.success,
     };
-    final statusLabels = {
+    const statusLabels = {
       'beklemede': 'Beklemede',
       'hazirlaniyor': 'Hazırlanıyor',
       'tamamlandi': 'Tamamlandı',

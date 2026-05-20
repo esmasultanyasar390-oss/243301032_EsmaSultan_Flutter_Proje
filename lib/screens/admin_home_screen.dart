@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import 'login_screen.dart';
+import 'admin_product_management.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -57,9 +58,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   }
 }
 
-class _DashboardTab extends StatelessWidget {
+class _DashboardTab extends StatefulWidget {
   const _DashboardTab();
 
+  @override
+  State<_DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<_DashboardTab> {
   Future<void> _logout(BuildContext context) async {
     await AuthService().signOut();
     if (context.mounted) {
@@ -77,8 +83,8 @@ class _DashboardTab extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -130,76 +136,13 @@ class _DashboardTab extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              const Text('Genel Bakış',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark)),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.3,
-                children: const [
-                  _StatCard(
-                      title: 'Toplam Bayi',
-                      value: '3',
-                      icon: Icons.people,
-                      color: AppColors.primary),
-                  _StatCard(
-                      title: 'Toplam Sipariş',
-                      value: '3',
-                      icon: Icons.receipt_long,
-                      color: AppColors.info),
-                  _StatCard(
-                      title: 'Bekleyen',
-                      value: '1',
-                      icon: Icons.pending_actions,
-                      color: AppColors.warning),
-                  _StatCard(
-                      title: 'Tamamlanan',
-                      value: '1',
-                      icon: Icons.check_circle,
-                      color: AppColors.success),
-                ],
+              const SizedBox(height: 12),
+              const Text(
+                'Ürün ekleyin; müşteri siparişleri yalnızca kendi hesaplarında görünür.',
+                style: TextStyle(fontSize: 12, color: AppColors.textGrey),
               ),
-              const SizedBox(height: 24),
-              const Text('Hızlı İşlemler',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark)),
-              const SizedBox(height: 14),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.6,
-                children: const [
-                  _ActionCard(
-                      icon: Icons.people_alt_outlined,
-                      title: 'Bayileri Yönet',
-                      color: AppColors.primary),
-                  _ActionCard(
-                      icon: Icons.receipt_outlined,
-                      title: 'Siparişleri Yönet',
-                      color: AppColors.info),
-                  _ActionCard(
-                      icon: Icons.inventory_2_outlined,
-                      title: 'Ürün Ekle',
-                      color: AppColors.warning),
-                  _ActionCard(
-                      icon: Icons.bar_chart_outlined,
-                      title: 'Raporlar',
-                      color: AppColors.success),
-                ],
-              ),
+              const SizedBox(height: 12),
+              const Expanded(child: AdminProductManagement()),
             ],
           ),
         ),
@@ -318,6 +261,12 @@ class _OrdersTab extends StatefulWidget {
 class _OrdersTabState extends State<_OrdersTab> {
   late Future<List<OrderModel>> _future;
 
+  void _load() {
+    setState(() {
+      _future = FirestoreService.getAllOrders();
+    });
+  }
+
   static const _statusColor = {
     'beklemede': AppColors.info,
     'hazirlaniyor': AppColors.warning,
@@ -332,7 +281,7 @@ class _OrdersTabState extends State<_OrdersTab> {
   @override
   void initState() {
     super.initState();
-    _future = FirestoreService.getAllOrders();
+    _load();
   }
 
   @override
@@ -343,9 +292,15 @@ class _OrdersTabState extends State<_OrdersTab> {
         backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text('Tüm Siparişler',
+        title: const Text('Müşteri Siparişleri',
             style: TextStyle(
                 color: AppColors.primary, fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: AppColors.primary),
+            onPressed: _load,
+          ),
+        ],
       ),
       body: FutureBuilder<List<OrderModel>>(
         future: _future,
@@ -356,7 +311,16 @@ class _OrdersTabState extends State<_OrdersTab> {
           }
           final orders = snap.data ?? [];
           if (orders.isEmpty) {
-            return const Center(child: Text('Sipariş bulunamadı.'));
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Text(
+                  'Müşteri siparişi yok.\nAdmin hesabındaki sepet/siparişler burada görünmez.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textGrey),
+                ),
+              ),
+            );
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),
@@ -380,6 +344,11 @@ class _OrdersTabState extends State<_OrdersTab> {
                             Text(order.id,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold)),
+                            Text(
+                              'Müşteri: ${order.userId.length > 12 ? '${order.userId.substring(0, 12)}…' : order.userId}',
+                              style: const TextStyle(
+                                  fontSize: 11, color: AppColors.textGrey),
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               '${order.totalAmount.toStringAsFixed(2)} ₺',
@@ -432,7 +401,101 @@ class _UsersTabState extends State<_UsersTab> {
   @override
   void initState() {
     super.initState();
-    _future = FirestoreService.getAllUsers();
+    _load();
+  }
+
+  void _load() {
+    setState(() {
+      _future = FirestoreService.getAllUsers();
+    });
+  }
+
+  Future<void> _editUserPrices(BuildContext context, UserModel user) async {
+    final products = await FirestoreService.getAllProductsAdmin();
+    final controllers = <String, TextEditingController>{};
+    for (final p in products) {
+      final price = user.customPrices[p.id] ??
+          (p.wholesalePrice * 1.15);
+      controllers[p.id] = TextEditingController(
+        text: price.toStringAsFixed(2),
+      );
+    }
+
+    if (!context.mounted) return;
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${user.name} — Özel Fiyatlar',
+            style: const TextStyle(color: AppColors.primary)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 320,
+          child: ListView(
+            children: products.map((p) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(p.name, style: const TextStyle(fontSize: 12)),
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: controllers[p.id],
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: '₺',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Kaydet', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) return;
+
+    final prices = <String, double>{};
+    for (final p in products) {
+      final v = double.tryParse(
+        controllers[p.id]!.text.replaceAll(',', '.'),
+      );
+      if (v != null) prices[p.id] = v;
+    }
+    await FirestoreService.setUserCustomPrices(user.uid, prices);
+    if (AuthService.currentUser?.uid == user.uid) {
+      AuthService.currentUser =
+          AuthService.currentUser!.copyWith(customPrices: prices);
+    }
+    _load();
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Özel fiyatlar kaydedildi.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 
   @override
@@ -516,7 +579,14 @@ class _UsersTabState extends State<_UsersTab> {
                       ),
                     ],
                   ),
-                  trailing: user.role == 'bayi'
+                  trailing: user.role == 'kullanici'
+                      ? IconButton(
+                          icon: const Icon(Icons.price_change_outlined,
+                              color: AppColors.warning),
+                          tooltip: 'Özel fiyatlar',
+                          onPressed: () => _editUserPrices(context, user),
+                        )
+                      : user.role == 'bayi'
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.end,

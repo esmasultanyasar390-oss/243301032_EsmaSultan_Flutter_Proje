@@ -89,16 +89,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       content: Text('Geçerli bir miktar girin.')));
                   return;
                 }
+                if (!AuthService.canAfford(amount)) {
+                  ScaffoldMessenger.of(ctx2).showSnackBar(const SnackBar(
+                    content: Text('Yetersiz bakiye.'),
+                  ));
+                  return;
+                }
                 Navigator.pop(ctx2);
                 await FirestoreService.makePayment(
                   userId: AuthService.currentUser?.uid ?? '',
                   amount: amount,
                   paymentType: paymentType,
+                  reduceDebt: true,
                 );
+                AuthService.deductBalance(amount);
+                AuthService.reduceDebt(amount);
                 if (mounted) {
-                  _load();
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    content: Text('Ödeme kaydedildi!'),
+                  setState(() {
+                    _load();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(
+                      'Ödeme kaydedildi. Bakiye: '
+                      '${AuthService.currentUser?.accountBalance.toStringAsFixed(2)} ₺',
+                    ),
                     backgroundColor: AppColors.success,
                   ));
                 }
@@ -115,8 +129,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
-    final debt = user?.currentDebt ?? 1575.25;
+    final debt = user?.currentDebt ?? 0;
     final limit = user?.creditLimit ?? 50000.0;
+    final balance = user?.accountBalance ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -139,8 +154,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           children: [
             Row(
               children: [
-                _balanceCard('Hesap Bakiyesi',
-                    '${(limit - debt).toStringAsFixed(2)} ₺',
+                _balanceCard('Kullanılabilir Bakiye',
+                    '${balance.toStringAsFixed(2)} ₺',
                     AppColors.success),
                 const SizedBox(width: 10),
                 _balanceCard('Kredi Limiti',

@@ -3,9 +3,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import '../models/user_model.dart';
 import 'firestore_service.dart';
+import 'cart_provider.dart';
 
 class AuthService {
   static UserModel? currentUser;
+
+  static bool get isAdmin => currentUser?.role == 'admin';
+  static bool get isBayi => currentUser?.role == 'bayi';
+  static bool get isKullanici => currentUser?.role == 'kullanici';
 
   bool get _firebaseAvailable => Firebase.apps.isNotEmpty;
 
@@ -35,6 +40,7 @@ class AuthService {
         taxNumber: '1234567890',
         creditLimit: 50000,
         currentDebt: 1575.25,
+        accountBalance: 48424.75,
         createdAt: DateTime(2024, 1, 15),
       ),
     ),
@@ -45,6 +51,7 @@ class AuthService {
         email: 'kullanici@kosmetic.com',
         role: 'kullanici',
         displayName: 'Ayşe Yıldız',
+        accountBalance: 5000,
         createdAt: DateTime(2024, 2, 1),
       ),
     ),
@@ -60,6 +67,9 @@ class AuthService {
           .get();
       if (doc.exists) {
         currentUser = UserModel.fromMap(doc.data()!);
+        if (currentUser!.role == 'admin') {
+          FirestoreService.registerAdminUid(uid);
+        }
         return currentUser;
       }
       return null;
@@ -74,6 +84,7 @@ class AuthService {
       final entry = _demoAccounts[email.trim().toLowerCase()];
       if (entry != null && password == entry.$1) {
         currentUser = entry.$2;
+        CartProvider.bindToCurrentUser();
         return currentUser;
       }
       throw 'E-posta veya şifre hatalı.';
@@ -102,6 +113,7 @@ class AuthService {
           companyName: isAdmin ? 'Kosmetic Yönetim' : '',
           taxNumber: isAdmin ? 'ADMIN' : '',
           role: isAdmin ? 'admin' : 'bayi',
+          accountBalance: isAdmin ? 0 : 10000,
           createdAt: DateTime.now(),
         );
         await docRef.set(user.toMap());
@@ -113,6 +125,13 @@ class AuthService {
         action: 'Giriş yapıldı',
         details: 'E-posta: $email',
       );
+      if (currentUser!.role == 'admin') {
+        FirestoreService.registerAdminUid(uid);
+      }
+      if (currentUser!.role == 'bayi') {
+        await FirestoreService.ensureSampleOrdersForUser(uid);
+      }
+      CartProvider.bindToCurrentUser();
       return currentUser;
     } on FirebaseAuthException catch (e) {
       throw _mapError(e);
@@ -149,6 +168,7 @@ class AuthService {
         displayName: displayName.trim(),
         companyName: companyName.trim(),
         taxNumber: taxNumber.trim(),
+        accountBalance: role == 'bayi' ? 10000 : 5000,
         createdAt: DateTime.now(),
       );
       await FirebaseFirestore.instance
@@ -161,6 +181,7 @@ class AuthService {
         details: role == 'bayi' ? 'Firma: $companyName' : 'Ad: $displayName',
       );
       currentUser = user;
+      CartProvider.bindToCurrentUser();
       return user;
     } on FirebaseAuthException catch (e) {
       throw _mapError(e);
@@ -179,19 +200,48 @@ class AuthService {
       await FirebaseAuth.instance.signOut();
     }
     currentUser = null;
+    CartProvider.clearOnLogout();
   }
 
-  UserModel _withRole(UserModel u, String role) => UserModel(
-    uid: u.uid,
-    email: u.email,
-    role: role,
-    displayName: u.displayName,
-    companyName: u.companyName,
-    taxNumber: u.taxNumber,
-    creditLimit: u.creditLimit,
-    currentDebt: u.currentDebt,
-    createdAt: u.createdAt,
-  );
+  /// Ödeme / sipariş sonrası bakiyeden düşer.
+  static void deductBalance(double amount) {
+    final u = currentUser;
+    if (u == null || amount <= 0) return;
+    currentUser = u.copyWith(
+      accountBalance: (u.accountBalance - amount).clamp(0, double.infinity),
+    );
+    FirestoreService.persistUserFinances(currentUser!);
+  }
+
+  static void reduceDebt(double amount) {
+    final u = currentUser;
+    if (u == null || amount <= 0) return;
+    currentUser = u.copyWith(
+      currentDebt: (u.currentDebt - amount).clamp(0, double.infinity),
+    );
+    FirestoreService.persistUserFinances(currentUser!);
+  }
+
+  static void addDebt(double amount) {
+    final u = currentUser;
+    if (u == null || amount <= 0) return;
+    currentUser = u.copyWith(currentDebt: u.currentDebt + amount);
+    FirestoreService.persistUserFinances(currentUser!);
+  }
+
+  static void updateCustomPrices(Map<String, double> prices) {
+    final u = currentUser;
+    if (u == null) return;
+    currentUser = u.copyWith(customPrices: prices);
+  }
+
+  static bool canAfford(double amount) {
+    final u = currentUser;
+    if (u == null) return false;
+    return u.accountBalance >= amount;
+  }
+
+  UserModel _withRole(UserModel u, String role) => u.copyWith(role: role);
 
   String _mapError(FirebaseAuthException e) {
     const map = {

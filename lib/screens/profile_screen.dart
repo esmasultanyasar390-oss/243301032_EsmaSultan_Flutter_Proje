@@ -145,6 +145,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   _infoRow(Icons.email, 'E-posta', user?.email ?? ''),
+                  if (user?.role == 'kullanici' &&
+                      user!.displayName.isNotEmpty) ...[
+                    const Divider(),
+                    _infoRow(Icons.person, 'Ad Soyad', user.displayName),
+                  ],
                   if (user?.role == 'bayi') ...[
                     const Divider(),
                     _infoRow(

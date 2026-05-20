@@ -17,9 +17,21 @@ class ProductModel {
     this.imageUrl = '',
   });
 
+  static String normalizeName(String name) {
+    var n = name.trim();
+    const prefixes = ['Örnek ', 'örnek ', 'ORNEK ', 'Ornek '];
+    for (final p in prefixes) {
+      if (n.startsWith(p)) {
+        n = n.substring(p.length).trim();
+        break;
+      }
+    }
+    return n;
+  }
+
   factory ProductModel.fromMap(String id, Map<String, dynamic> map) => ProductModel(
         id: id,
-        name: map['name'] ?? '',
+        name: normalizeName(map['name']?.toString() ?? ''),
         brand: map['brand'] ?? '',
         category: map['category'] ?? '',
         wholesalePrice: (map['wholesalePrice'] ?? 0).toDouble(),
@@ -35,4 +47,22 @@ class ProductModel {
         'stock': stock,
         'imageUrl': imageUrl,
       };
+
+  ProductModel copyWith({
+    String? name,
+    String? brand,
+    String? category,
+    double? wholesalePrice,
+    int? stock,
+    String? imageUrl,
+  }) =>
+      ProductModel(
+        id: id,
+        name: name ?? this.name,
+        brand: brand ?? this.brand,
+        category: category ?? this.category,
+        wholesalePrice: wholesalePrice ?? this.wholesalePrice,
+        stock: stock ?? this.stock,
+        imageUrl: imageUrl ?? this.imageUrl,
+      );
 }
