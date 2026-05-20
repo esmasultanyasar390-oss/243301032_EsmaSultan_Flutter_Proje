@@ -8,12 +8,19 @@ import 'screens/admin_home_screen.dart';
 import 'services/auth_service.dart';
 import 'services/cart_provider.dart';
 import 'constants.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
-  } catch (_) {}
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('✅ Firebase başarıyla başlatıldı');
+  } catch (e) {
+    print('❌ Firebase başlatma hatası: $e');
+    // Hata detayını göster, sessizce başarısız olma
+  }
   runApp(const KosmeticApp());
 }
 
@@ -60,9 +67,11 @@ class _AuthGateState extends State<_AuthGate> {
     if (Firebase.apps.isEmpty) {
       final existing = AuthService.currentUser;
       if (existing != null) {
-        _navigate(existing.role == 'admin'
-            ? const AdminHomeScreen()
-            : const HomeScreen());
+        _navigate(
+          existing.role == 'admin'
+              ? const AdminHomeScreen()
+              : const HomeScreen(),
+        );
       } else {
         _navigate(const LoginScreen());
       }
@@ -82,9 +91,9 @@ class _AuthGateState extends State<_AuthGate> {
     if (user == null) {
       _navigate(const LoginScreen());
     } else {
-      _navigate(user.role == 'admin'
-          ? const AdminHomeScreen()
-          : const HomeScreen());
+      _navigate(
+        user.role == 'admin' ? const AdminHomeScreen() : const HomeScreen(),
+      );
     }
   }
 

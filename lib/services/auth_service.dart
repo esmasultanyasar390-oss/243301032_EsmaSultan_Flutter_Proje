@@ -10,9 +10,7 @@ class AuthService {
   bool get _firebaseAvailable => Firebase.apps.isNotEmpty;
 
   // Bu listedeki e-postalar otomatik olarak yönetici rolü alır.
-  static const List<String> adminEmails = [
-    'admin@kosmetic.com',
-  ];
+  static const List<String> adminEmails = ['admin@kosmetic.com'];
 
   // ── Demo hesaplar (Firebase bağlantısı olmadan test için) ──────────────
   static final _demoAccounts = <String, (String, UserModel)>{
@@ -88,8 +86,7 @@ class AuthService {
       );
       final uid = cred.user!.uid;
       final isAdmin = adminEmails.contains(email.trim().toLowerCase());
-      final docRef =
-          FirebaseFirestore.instance.collection('users').doc(uid);
+      final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
       final doc = await docRef.get();
 
       if (doc.exists) {
@@ -136,17 +133,8 @@ class AuthService {
 
     // ── Demo mod ──────────────────────────────────────────────────────────
     if (!_firebaseAvailable) {
-      final user = UserModel(
-        uid: 'demo_${DateTime.now().millisecondsSinceEpoch}',
-        email: email.trim(),
-        role: role,
-        displayName: displayName.trim(),
-        companyName: companyName.trim(),
-        taxNumber: taxNumber.trim(),
-        createdAt: DateTime.now(),
-      );
-      currentUser = user;
-      return user;
+      print('⚠️  Firebase kullanılamıyor! Demo mode\'da çalışılıyor.');
+      throw 'Firebase bağlantısı başarısız. Lütfen İnternet bağlantınızı kontrol edin ve uygulamayı yeniden başlatın.';
     }
     // ── Firebase mod ──────────────────────────────────────────────────────
     try {
@@ -194,16 +182,16 @@ class AuthService {
   }
 
   UserModel _withRole(UserModel u, String role) => UserModel(
-        uid: u.uid,
-        email: u.email,
-        role: role,
-        displayName: u.displayName,
-        companyName: u.companyName,
-        taxNumber: u.taxNumber,
-        creditLimit: u.creditLimit,
-        currentDebt: u.currentDebt,
-        createdAt: u.createdAt,
-      );
+    uid: u.uid,
+    email: u.email,
+    role: role,
+    displayName: u.displayName,
+    companyName: u.companyName,
+    taxNumber: u.taxNumber,
+    creditLimit: u.creditLimit,
+    currentDebt: u.currentDebt,
+    createdAt: u.createdAt,
+  );
 
   String _mapError(FirebaseAuthException e) {
     const map = {
